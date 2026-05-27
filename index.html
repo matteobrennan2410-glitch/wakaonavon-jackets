@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Ko Tane — Jacket Check In/Out</title>
+<style>
+:root{--g:#8b1a1a;--gl:#a52020;--dark:#5c1010;--cream:#fdf5f5;--red:#c0392b;--sgr:#27ae60;--grey:#666;--lgrey:#aaa;--border:#e8d0d0;--light:#fff0f0}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--cream);color:#222;min-height:100vh}
+#header{background:var(--g);color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.brand{padding:12px 16px 0;text-align:center}
+.brand-ko{font-size:10px;letter-spacing:3px;opacity:.6;text-transform:uppercase}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:.5px;margin-top:2px}
+.brand-sub{font-size:11px;opacity:.55;margin-top:1px}
+.tabs{display:flex;margin-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+.tab{flex:1;padding:10px 4px;border:none;cursor:pointer;background:transparent;color:rgba(255,255,255,.5);font-size:12px;font-weight:400;border-bottom:3px solid transparent;font-family:inherit;transition:all .2s}
+.tab.active{background:rgba(255,255,255,.12);color:#fff;font-weight:700;border-bottom-color:#f4c2c2}
+#content{padding:14px 13px 20px;max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:13px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-title{font-size:13px;font-weight:700;color:var(--g);margin-bottom:12px}
+.field-lbl{font-size:10px;color:var(--lgrey);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.field-input{width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #ddd;font-size:14px;font-family:inherit;outline:none;margin-bottom:12px}
+.field-input:focus{border-color:var(--g)}
+/* Jacket grid */
+.jacket-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.jacket-card{border:2px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s;text-align:center;background:#fff;position:relative}
+.jacket-card:hover{border-color:var(--gl)}
+.jacket-card.selected{border-color:var(--g);background:var(--light)}
+.jacket-card.unavailable{opacity:.45;cursor:not-allowed;background:#f5f5f5}
+.jacket-icon{font-size:28px;margin-bottom:4px}
+.jacket-name{font-size:13px;font-weight:700;color:#222}
+.jacket-status{font-size:11px;margin-top:3px}
+.jacket-status.free{color:var(--sgr)}
+.jacket-status.out{color:var(--red)}
+.jacket-who{font-size:10.5px;color:var(--grey);margin-top:2px;font-style:italic}
+/* Buttons */
+.btn{width:100%;padding:13px;border-radius:12px;font-size:14.5px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:opacity .2s}
+.btn-primary{background:var(--g);color:#fff}
+.btn-return{background:#fff;color:var(--g);border:2px solid var(--g)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-sm{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit}
+.btn-return-sm{background:var(--light);color:var(--g);border:1.5px solid var(--border)}
+/* Currently out */
+.out-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.out-item-left{}
+.out-item-name{font-size:14px;font-weight:700;color:#222}
+.out-item-meta{font-size:12px;color:var(--grey);margin-top:2px}
+.out-empty{text-align:center;padding:40px 20px;color:var(--grey)}
+.out-empty-icon{font-size:40px;margin-bottom:10px}
+.out-empty-h{font-size:15px;font-weight:700;color:var(--g)}
+.out-empty-s{font-size:13px;margin-top:5px}
+/* History */
+.hist-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.hist-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:4px}
+.hist-badge.out{background:#fff0f0;color:var(--red)}
+.hist-badge.in{background:#f0fff4;color:var(--sgr)}
+.hist-name{font-size:13.5px;font-weight:600;color:#222}
+.hist-meta{font-size:11.5px;color:var(--grey);margin-top:2px}
+.hist-time{font-size:11px;color:var(--lgrey);text-align:right;flex-shrink:0;margin-left:10px}
+/* Admin */
+.arch-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.arch-toolbar-title{font-size:13px;font-weight:700;color:var(--g)}
+.admin-btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--g);background:#fff;color:var(--g);cursor:pointer;font-family:inherit}
+.admin-btn.active{background:var(--g);color:#fff}
+.admin-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;gap:8px;align-items:center}
+.admin-bar input{flex:1;padding:7px 10px;border-radius:8px;border:1.5px solid #bbb;font-size:13.5px;font-family:inherit;outline:none}
+.admin-bar input:focus{border-color:var(--g)}
+.admin-bar button{padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;border:none;background:var(--g);color:#fff;cursor:pointer;font-family:inherit}
+.admin-status{font-size:12px;color:var(--sgr);font-weight:600;padding:4px 0 8px}
+.clear-btn{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;background:#fff0f0;color:var(--red);border:2px solid rgba(192,57,43,.3);cursor:pointer;font-family:inherit;margin-top:8px}
+/* Loading */
+.loading{text-align:center;padding:40px 20px;color:var(--g)}
+.spinner{display:inline-block;width:30px;height:30px;border:3px solid rgba(139,26,26,.2);border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Footer */
+.footer{text-align:center;padding:0 16px 22px;font-size:10.5px;color:var(--lgrey);letter-spacing:.3px}
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--sgr);color:#fff;padding:11px 22px;border-radius:50px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:999;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="brand">
+    <div class="brand-ko">Ko Tane Limited</div>
+    <div class="brand-name">Waka on Avon</div>
+    <div class="brand-sub">Jacket Check In / Out</div>
+  </div>
+  <div class="tabs">
+    <button class="tab" onclick="setTab('checkout')">🧥 Check Out</button>
+    <button class="tab" onclick="setTab('out')">📋 Currently Out</button>
+    <button class="tab" onclick="setTab('history')">📁 History</button>
+  </div>
+</div>
+
+<div id="content"></div>
+<div class="footer" id="footer">Manaakitanga · Kaitiakitanga · Tikanga · Whanaungatanga</div>
+<div id="toast"></div>
+
+<script>
+// ╔══════════════════════════════════════════╗
+// ║  Firebase Realtime Database URL          ║
+// ╚══════════════════════════════════════════╝
+const DB_URL = 'https://wakaonavon-jackets-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// ╔══════════════════════════════════════════╗
+// ║  Passwords                               ║
+// ╚══════════════════════════════════════════╝
+const SITE_PASSWORD  = 'otakaro794';
+const ADMIN_PASSWORD = 'wakaonavon';
+
+// ── JACKETS ───────────────────────────────────────────────────────────────
+const JACKETS = [
+  {id:'m1', label:'Medium', sub:'#1', icon:'🧥'},
+  {id:'m2', label:'Medium', sub:'#2', icon:'🧥'},
+  {id:'m3', label:'Medium', sub:'#3', icon:'🧥'},
+  {id:'l1', label:'Large',  sub:'#1', icon:'🧥'},
+  {id:'l2', label:'Large',  sub:'#2', icon:'🧥'},
+  {id:'w8', label:"Women's", sub:'Size 8', icon:'🧥'},
+  {id:'w10',label:"Women's", sub:'Size 10', icon:'🧥'},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtTime = s => new Date(s).toLocaleTimeString('en-NZ',{hour:'2-digit',minute:'2-digit'});
+const fmtDate = s => new Date(s).toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'});
+const fmtFull = s => `${fmtDate(s)} ${fmtTime(s)}`;
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+const S = {
+  tab: 'checkout',
+  staffName: '',
+  selectedJacket: null,
+  checkedOut: {}, // jacketId -> {staffName, since, fbKey}
+  history: [],
+  histLoading: false,
+  histError: false,
+  outLoading: true,
+  adminMode: false,
+  showAdminBar: false,
+};
+
+// ── FIREBASE ──────────────────────────────────────────────────────────────
+async function fbGet(path){
+  const r = await fetch(DB_URL+path+'.json');
+  if(!r.ok) throw new Error('Load failed');
+  return await r.json();
+}
+async function fbSet(path, data){
+  const r = await fetch(DB_URL+path+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!r.ok) throw new Error('Set failed');
+}
+async function fbPost(path, data){
+  const r = await fetch(DB_URL+path+'.json',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!r.ok) throw new Error('Post failed');
+  return (await r.json()).name;
+}
+async function fbDelete(path){
+  const r = await fetch(DB_URL+path+'.json',{method:'DELETE'});
+  if(!r.ok) throw new Error('Delete failed');
+}
+
+async function loadCheckedOut(){
+  S.outLoading = true; render();
+  try{
+    const data = await fbGet('/jackets/checkedOut');
+    S.checkedOut = data || {};
+  }catch(e){ S.checkedOut = {}; }
+  S.outLoading = false; render();
+}
+
+async function loadHistory(){
+  S.histLoading = true; S.histError = false; render();
+  try{
+    const data = await fbGet('/jackets/history');
+    S.history = data ? Object.values(data).sort((a,b)=>new Date(b.at)-new Date(a.at)) : [];
+  }catch(e){ S.histError = true; }
+  S.histLoading = false; render();
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────
+async function checkOut(){
+  if(!S.staffName.trim()){ toast('Please enter your name',true); return; }
+  if(!S.selectedJacket){ toast('Please select a jacket',true); return; }
+  const j = JACKETS.find(j=>j.id===S.selectedJacket);
+  const btn = document.getElementById('checkout-btn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Checking out...'; }
+  const entry = { staffName: S.staffName.trim(), jacketId: j.id, jacketLabel: `${j.label} ${j.sub}`, since: new Date().toISOString() };
+  try{
+    await fbSet('/jackets/checkedOut/'+j.id, entry);
+    const histEntry = { ...entry, action:'out', at: new Date().toISOString() };
+    await fbPost('/jackets/history', histEntry);
+    S.checkedOut[j.id] = entry;
+    S.selectedJacket = null;
+    S.staffName = '';
+    toast(`✓ ${j.label} ${j.sub} checked out to ${entry.staffName}`, false);
+    render();
+  }catch(e){
+    toast('Error — check connection', true);
+    if(btn){ btn.disabled=false; btn.textContent='✅ Check Out Jacket'; }
+  }
+}
+
+async function returnJacket(jacketId){
+  const entry = S.checkedOut[jacketId];
+  if(!entry) return;
+  const j = JACKETS.find(j=>j.id===jacketId);
+  try{
+    const histEntry = { staffName: entry.staffName, jacketId, jacketLabel: entry.jacketLabel, action:'in', since: entry.since, at: new Date().toISOString() };
+    await fbPost('/jackets/history', histEntry);
+    await fbDelete('/jackets/checkedOut/'+jacketId);
+    delete S.checkedOut[jacketId];
+    toast(`✓ ${entry.jacketLabel} returned by ${entry.staffName}`, false);
+    render();
+  }catch(e){ toast('Error — check connection', true); }
+}
+
+async function clearHistory(){
+  if(!confirm('Clear all history? This cannot be undone.')) return;
+  try{
+    await fbDelete('/jackets/history');
+    S.history = [];
+    toast('✓ History cleared', false);
+    render();
+  }catch(e){ toast('Error clearing history', true); }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function renderCheckout(){
+  const jacketCards = JACKETS.map(j=>{
+    const isOut = !!S.checkedOut[j.id];
+    const isSel = S.selectedJacket === j.id;
+    const cls = `jacket-card${isOut?' unavailable':isSel?' selected':''}`;
+    const onclick = isOut ? '' : `onclick="selectJacket('${j.id}')"`;
+    const status = isOut
+      ? `<div class="jacket-status out">Checked Out</div><div class="jacket-who">${esc(S.checkedOut[j.id].staffName)}</div>`
+      : `<div class="jacket-status free">Available</div>`;
+    return `<div class="${cls}" ${onclick}><div class="jacket-icon">${j.icon}</div><div class="jacket-name">${j.label}</div><div style="font-size:11.5px;color:var(--grey)">${j.sub}</div>${status}</div>`;
+  }).join('');
+
+  const availCount = JACKETS.filter(j=>!S.checkedOut[j.id]).length;
+
+  return `
+    <div class="card">
+      <div class="card-title">Staff Details</div>
+      <div class="field-lbl">Your Name</div>
+      <input class="field-input" type="text" value="${esc(S.staffName)}" placeholder="Enter your name" oninput="S.staffName=this.value">
+    </div>
+    <div class="card">
+      <div class="card-title">Select a Jacket <span style="font-size:11px;font-weight:400;color:var(--grey)">${availCount} of ${JACKETS.length} available</span></div>
+      <div class="jacket-grid">${jacketCards}</div>
+      <button class="btn btn-primary" id="checkout-btn" onclick="checkOut()">✅ Check Out Jacket</button>
+    </div>`;
+}
+
+function renderOut(){
+  if(S.outLoading) return `<div class="loading"><div class="spinner"></div><div>Loading...</div></div>`;
+  const outEntries = Object.entries(S.checkedOut);
+  if(!outEntries.length) return `<div class="out-empty"><div class="out-empty-icon">✅</div><div class="out-empty-h">All jackets returned</div><div class="out-empty-s">No jackets currently checked out</div></div>`;
+  return outEntries.map(([id,e])=>`
+    <div class="out-item">
+      <div class="out-item-left">
+        <div class="out-item-name">🧥 ${esc(e.jacketLabel)}</div>
+        <div class="out-item-meta">Signed out by <strong>${esc(e.staffName)}</strong> at ${fmtTime(e.since)}</div>
+      </div>
+      <button class="btn-sm btn-return-sm" onclick="returnJacket('${id}')">Return</button>
+    </div>`).join('');
+}
+
+function renderHistory(){
+  const adminBarHtml = S.showAdminBar&&!S.adminMode ? `<div class="admin-bar"><input type="password" id="admin-pw-input" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkAdmin()"><button onclick="checkAdmin()">Unlock</button></div>` : '';
+  const adminStatus = S.adminMode ? `<div class="admin-status">🔓 Admin mode</div>` : '';
+  const clearBtn = S.adminMode ? `<button class="clear-btn" onclick="clearHistory()">🗑 Clear All History</button>` : '';
+  const toolbar = `<div class="arch-toolbar"><span class="arch-toolbar-title">${S.history.length} record${S.history.length!==1?'s':''}</span><button class="admin-btn ${S.adminMode?'active':''}" onclick="togAdminBar()">${S.adminMode?'🔓 Admin':'🔒 Admin'}</button></div>${adminBarHtml}${adminStatus}`;
+
+  if(S.histLoading) return `<div class="loading"><div class="spinner"></div><div>Loading history...</div></div>`;
+  if(S.histError) return toolbar+`<div class="out-empty"><div class="out-empty-icon">⚠️</div><div class="out-empty-h">Couldn't load history</div><div class="out-empty-s"><button class="btn btn-primary" style="max-width:200px;margin:12px auto 0;display:block" onclick="loadHistory()">Try again</button></div></div>`;
+  if(!S.history.length) return toolbar+`<div class="out-empty"><div class="out-empty-icon">📋</div><div class="out-empty-h">No history yet</div><div class="out-empty-s">Check out a jacket to see it here</div></div>`;
+
+  const items = S.history.map(e=>`
+    <div class="hist-item">
+      <div>
+        <div><span class="hist-badge ${e.action}">${e.action==='out'?'Checked Out':'Returned'}</span></div>
+        <div class="hist-name">🧥 ${esc(e.jacketLabel)}</div>
+        <div class="hist-meta">${esc(e.staffName)}</div>
+      </div>
+      <div class="hist-time">${fmtFull(e.at)}</div>
+    </div>`).join('');
+
+  return toolbar + items + clearBtn;
+}
+
+function render(){
+  document.querySelectorAll('.tab').forEach((b,i)=>{b.classList.toggle('active',S.tab===['checkout','out','history'][i]);});
+  document.getElementById('footer').style.display='';
+  const c = document.getElementById('content');
+  if(S.tab==='checkout') c.innerHTML = renderCheckout();
+  else if(S.tab==='out') c.innerHTML = renderOut();
+  else c.innerHTML = renderHistory();
+}
+
+// ── EVENT HANDLERS ────────────────────────────────────────────────────────
+function setTab(t){
+  S.tab=t; render();
+  if(t==='out') loadCheckedOut();
+  if(t==='history') loadHistory();
+}
+function selectJacket(id){ S.selectedJacket = S.selectedJacket===id ? null : id; render(); }
+
+function togAdminBar(){
+  if(S.adminMode){ S.adminMode=false; S.showAdminBar=false; }
+  else { S.showAdminBar=!S.showAdminBar; }
+  render();
+  if(S.showAdminBar&&!S.adminMode) setTimeout(()=>{const el=document.getElementById('admin-pw-input');if(el)el.focus();},50);
+}
+function checkAdmin(){
+  const el=document.getElementById('admin-pw-input');
+  if(el&&el.value===ADMIN_PASSWORD){ S.adminMode=true; S.showAdminBar=false; render(); toast('✓ Admin mode unlocked',false); }
+  else { toast('Incorrect password',true); if(el) el.value=''; }
+}
+
+function toast(msg,err){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=err?'show err':'show';
+  setTimeout(()=>{el.className=err?'err':'';},3500);
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+function renderLogin(){
+  document.getElementById('header').style.display='none';
+  document.getElementById('footer').style.display='none';
+  document.getElementById('content').innerHTML=`
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;padding:32px 28px;max-width:340px;width:100%;border:1px solid var(--border);box-shadow:0 4px 20px rgba(0,0,0,0.1);text-align:center">
+        <div style="font-size:10px;letter-spacing:3px;color:var(--lgrey);text-transform:uppercase;margin-bottom:6px">Ko Tane Limited</div>
+        <div style="font-size:22px;font-weight:800;color:var(--g);margin-bottom:4px">Waka on Avon</div>
+        <div style="font-size:12px;color:var(--lgrey);margin-bottom:28px">Jacket Check In / Out</div>
+        <div style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;text-align:left">Password</div>
+        <input id="site-pw" type="password" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkSiteLogin()"
+          style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #bbb;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px">
+        <div id="login-err" style="color:var(--red);font-size:12.5px;margin-bottom:10px;display:none">Incorrect password — try again</div>
+        <button onclick="checkSiteLogin()" style="width:100%;padding:12px;border-radius:10px;font-size:15px;font-weight:700;background:var(--g);color:#fff;border:none;cursor:pointer;font-family:inherit">Enter</button>
+        <div style="margin-top:20px;font-size:10px;color:var(--lgrey);letter-spacing:0.3px">Manaakitanga · Kaitiakitanga · Tikanga · Whanaungatanga</div>
+      </div>
+    </div>`;
+  setTimeout(()=>{const el=document.getElementById('site-pw');if(el)el.focus();},50);
+}
+function checkSiteLogin(){
+  const el=document.getElementById('site-pw');
+  if(el&&el.value===SITE_PASSWORD){
+    sessionStorage.setItem('jco_auth','1');
+    document.getElementById('header').style.display='';
+    init();
+  }else{
+    const err=document.getElementById('login-err');
+    if(err) err.style.display='block';
+    if(el) el.value='';
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init(){
+  render();
+  await loadCheckedOut();
+}
+
+if(sessionStorage.getItem('jco_auth')==='1'){ init(); }
+else{ renderLogin(); }
+</script>
+</body>
+</html>
